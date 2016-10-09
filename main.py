@@ -8,54 +8,58 @@ import urllib
 # dev_appserver.py .
 # http://localhost:8080/?winner=0&fbId0=10153589934097337&fbId1=10153693068502449&state=bKxbMxbMxbMxxbMxbMxbMxbMbMxbMxbMxbMxxxxxxxxxxxxxxxxxxwMxwMxwMxwMwMxwMxwMxwMxxwMxwMxwMxwM
 # http://localhost:8080/fbId0=10153589934097337
+# http://localhost:8080/?onlyBoard=t
 # appcfg.py update .
-
-# Facebook recommends 1200 x 630 pixels for the og:image dimensions
-img_w = 952
-img_h = 500
-# Board is 400x400, at center of img.
-board_w = 400
-board_h = 400
-board_x = (img_w - board_w)/2
-board_y = (img_h - board_h)/2
-cell_w = board_w/8 # 50x50
-cell_h = board_h/8
-avatar_w = cell_w * 4 / 5 #40x40
-avatar_h = cell_h * 4 / 5
-antialias_scale = 4 # Draw stuff 4-times bigger, and then scale down with ANTIALIAS to avoid rough circles.
-
-def loadImg(URL):
-    file = StringIO(urllib.urlopen(URL).read())
-    return Image.open(file)
-
-def getFbUrl(fbId, width, height):
-    # http://graph.facebook.com/10153589934097337/picture?height=200&width=400
-    # http://graph.facebook.com/10153693068502449/picture?height=200&width=400
-    return "http://graph.facebook.com/" + fbId + "/picture?height=" + str(height) + "&width=" + str(width);
-
-def loadFbBigImg(fbId, width, height):
-    if not fbId: return None
-    big_img = loadImg(getFbUrl(fbId, width, height))
-    return big_img.resize((width, height), Image.ANTIALIAS)
-
-def loadFbSmallImg(fbId):
-    if not fbId: return None
-    avatar = loadImg(getFbUrl(fbId, 50, 50))
-    return avatar.resize((40, 40), Image.ANTIALIAS)
-
-def createCircle(color):
-    size = (200, 200)
-    img = Image.new('L', size, 0)
-    draw = ImageDraw.Draw(img)
-    start = 15
-    end = 30
-    draw.ellipse((start, start) + (200-start, 200-start), fill=color)
-    draw.ellipse((end, end) + (200-end, 200-end), fill=0)
-    return img.resize((50, 50), Image.ANTIALIAS)
 
 class MainPage(webapp2.RequestHandler):
 
     def get(self):
+        onlyBoard = self.request.get('onlyBoard') == "t"
+
+        # Facebook recommends 1200 x 630 pixels for the og:image dimensions,
+        # but I chose 952x500 (always keep this aspect-ratio! That ratio is assumed in the platform when showing the game-over "printscreen" for FB sharing.)
+        img_w = 400 if onlyBoard else 952
+        img_h = 400 if onlyBoard else 500
+        # Board is 400x400, at center of img.
+        board_w = 400
+        board_h = 400
+        board_x = (img_w - board_w)/2
+        board_y = (img_h - board_h)/2
+        cell_w = board_w/8 # 50x50
+        cell_h = board_h/8
+        avatar_w = cell_w * 4 / 5 #40x40
+        avatar_h = cell_h * 4 / 5
+        antialias_scale = 4 # Draw stuff 4-times bigger, and then scale down with ANTIALIAS to avoid rough circles.
+
+        def loadImg(URL):
+            file = StringIO(urllib.urlopen(URL).read())
+            return Image.open(file)
+
+        def getFbUrl(fbId, width, height):
+            # http://graph.facebook.com/10153589934097337/picture?height=200&width=400
+            # http://graph.facebook.com/10153693068502449/picture?height=200&width=400
+            return "http://graph.facebook.com/" + fbId + "/picture?height=" + str(height) + "&width=" + str(width);
+
+        def loadFbBigImg(fbId, width, height):
+            if not fbId: return None
+            big_img = loadImg(getFbUrl(fbId, width, height))
+            return big_img.resize((width, height), Image.ANTIALIAS)
+
+        def loadFbSmallImg(fbId):
+            if not fbId: return None
+            avatar = loadImg(getFbUrl(fbId, 50, 50))
+            return avatar.resize((40, 40), Image.ANTIALIAS)
+
+        def createCircle(color):
+            size = (200, 200)
+            img = Image.new('L', size, 0)
+            draw = ImageDraw.Draw(img)
+            start = 15
+            end = 30
+            draw.ellipse((start, start) + (200-start, 200-start), fill=color)
+            draw.ellipse((end, end) + (200-end, 200-end), fill=0)
+            return img.resize((50, 50), Image.ANTIALIAS)
+
         state=self.request.get('state')
         if not state: state = "bMxbMxbMxbMxxbMxbMxbMxbMbMxbMxbMxbMxxxxxxxxxxxxxxxxxxwMxwMxwMxwMwMxwMxwMxwMxxwMxwMxwMxwM"
         state = state.lower()
